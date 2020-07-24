@@ -102,7 +102,6 @@ extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
 //---Customerized func.---
 #define NVT_TOUCH_PROC 1
 #define NVT_TOUCH_EXT_PROC 1
-#define NVT_TOUCH_MP 1
 #define MT_PROTOCOL_B 1
 #define NVT_TOUCH_FW_DEBUG_INFO 1
 #define WAKEUP_GESTURE 1

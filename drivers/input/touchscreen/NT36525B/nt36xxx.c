@@ -111,10 +111,6 @@ extern int32_t nvt_extra_proc_init(void);
 
 int g_gesture = 0;
 
-#if NVT_TOUCH_MP
-extern int32_t nvt_mp_proc_init(void);
-#endif
-
 struct nvt_ts_data *ts;
 
 int gloal_reset_flag;
@@ -2651,13 +2647,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
-#if NVT_TOUCH_MP
-	ret = nvt_mp_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt mp proc init failed. ret=%d\n", ret);
-		goto err_init_NVT_ts;
-	}
-#endif
 	nvt_update_fw_notifier_init();
 	nvt_tp_usb_notifier_init();
 	nvt_tp_headset_notifier_init();
