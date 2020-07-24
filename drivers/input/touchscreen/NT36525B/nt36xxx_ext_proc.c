@@ -33,7 +33,6 @@
 
 #if 0
 #define OPPO_TOUCHPANEL_NAME "touchpanel"
-#define OPPO_BASELINE_TEST "baseline_test"
 #define OPPO_COORDINATE "coordinate"
 #define OPPO_DEBUG_INFO "debug_info"
 #define OPPO_DELTA "delta"
@@ -53,7 +52,6 @@
 
 extern struct file_operations oppo_nvt_selftest_fops;
 
-static struct proc_dir_entry *oppo_baseline_test;
 static struct proc_dir_entry *oppo_coordinate;
 static struct proc_dir_entry *oppo_delta;
 static struct proc_dir_entry *oppo_baseline;
@@ -73,9 +71,7 @@ static struct proc_dir_entry *oppo_tp_direction;
 
 static struct proc_dir_entry *NVT_proc_diff_entry;
 #endif
-extern int32_t nvt_selftest_open(struct inode *inode, struct file *file);
 extern int g_gesture;
-extern int oppo_nvt_blackscreen_test(void);
 extern void nvt_irq_enable(bool enable);
 extern void nvt_mode_change_cmd(uint8_t cmd);
 extern int nvt_enable_hopping_polling_mode(bool enable);
@@ -1421,40 +1417,6 @@ static const struct file_operations fix_hop_simulate_fops =
 
 #endif
 
-static int32_t openshort_open(struct inode *inode, struct file *file)
-{
-    int32_t ret = 0;
-	ts->oppo_baseline_test_flag = 0;
-	NVT_LOG("%s,ts->oppo_baseline_test_flag = %d\n",__func__,ts->oppo_baseline_test_flag);
-	ret = nvt_selftest_open(inode,file);
-
-	return ret;
-}
-
-static const struct file_operations ctp_openshort_test_fops = {
-	.owner = THIS_MODULE,
-	.open = openshort_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
-};
-static int32_t baseline_test_open(struct inode *inode, struct file *file)
-{
-    int32_t ret = 0;
-	ts->oppo_baseline_test_flag = 1;
-	NVT_LOG("%s,ts->oppo_baseline_test_flag = %d\n",__func__,ts->oppo_baseline_test_flag);
-	ret = nvt_selftest_open(inode,file);
-
-	return ret;
-}
-
-static const struct file_operations baseline_test_fops = {
-	.owner = THIS_MODULE,
-	.open = baseline_test_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
-};
 static ssize_t oppo_tp_limit_area_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
 
@@ -1586,116 +1548,6 @@ static const struct file_operations i2c_device_test_fops = {
 	.release = seq_release,
 };
 
-
-static ssize_t oppo_blackscreen_test_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
-{
-    int ret = 0;
-    int retry = 20;
-	int len = 0;
-	char *ptr = NULL;
-    NVT_LOG("%s %ld %lld\n", __func__, count, *ppos);
-	if ( *ppos ) {
-    	printk("is already read the file\n");
-    	return 0;
-	}
-    *ppos += count;
-
-	if (ts->nvt_oppo_proc_data == NULL) {
-		ts->nvt_oppo_proc_data = kzalloc(sizeof(struct nvt_oppo_data), GFP_KERNEL);
-		if (ts->nvt_oppo_proc_data == NULL) {
-			NVT_LOG("alloc the ts->nvt_oppo_proc_data memery fail \n");
-			return -1;
-		}
-	}
-
-    if (!ts->nvt_oppo_proc_data->gesture_test.flag) {
-		printk("ts->gesture_test.flag ==== %d\n",ts->nvt_oppo_proc_data->gesture_test.flag);
-		//return 0;
-	}
-
-    ts->nvt_oppo_proc_data->gesture_test.message = kzalloc(256, GFP_KERNEL);
-    if (ts->nvt_oppo_proc_data->gesture_test.message==NULL) {
-        NVT_LOG("failed to alloc gesture_test.message memory\n");
-        return 0;
-    }
-    ptr = kzalloc(256, GFP_KERNEL);
-    if (ptr == NULL) {
-        NVT_LOG("failed to alloc ptr memory\n");
-        return 0;
-    }
-
-    //wait until tp is in sleep, then sleep 500ms to make sure tp is in gesture mode
-    do {
-        if (ts->is_suspended) {
-            msleep(500);
-            break;
-        }
-        msleep(200);
-    } while(--retry);
-
-    NVT_LOG("%s retry times %d\n", __func__, retry);
-    if (retry == 0 && !ts->is_suspended) {
-		len = snprintf(ts->nvt_oppo_proc_data->gesture_test.message,count,"%s\n", "1 errors: not in sleep");
-        goto OUT;
-    }
-
-    //mutex_lock(&ts->lock);
-    ret = oppo_nvt_blackscreen_test();
-	if (ret){
-		NVT_LOG("can not complete blackscreen test\n");
-	}
-    //mutex_unlock(&ts->lock);
-	len = snprintf(ptr, count,"%s\n",ts->nvt_oppo_proc_data->gesture_test.message);
-OUT:
-    ts->nvt_oppo_proc_data->gesture_test.flag = 0;
-	g_gesture = ts->g_gesture_bak;
-    ts->gesture_enable = ts->nvt_oppo_proc_data->gesture_test.gesture_backup;
-	ret=copy_to_user(buf,ptr,len);
-
-    //kfree(ts->nvt_oppo_proc_data);
-	kfree(ptr);
-    return len;
-}
-
-static ssize_t oppo_blackscreen_test_write(struct file *file, const char __user *userbuf, size_t count, loff_t *ppos)
-{
-    int value = 0;
-	//char buf[4] = {0};
-	char *ptr = NULL;
-	ptr = kzalloc(count,GFP_KERNEL);
-	if ( ptr == NULL ) {
-		return -1;
-	}
-	if (ts->nvt_oppo_proc_data == NULL) {
-		ts->nvt_oppo_proc_data = kzalloc(sizeof(struct nvt_oppo_data), GFP_KERNEL);
-		if (ts->nvt_oppo_proc_data == NULL) {
-			NVT_LOG("alloc the ts->nvt_oppo_proc_data memery fail \n");
-			return -1;
-		}
-	}
-	if ( copy_from_user(ptr, userbuf, count) ) {
-		NVT_LOG("%s: copy from user error.", __func__);
-		return -1;
-	}
-	sscanf(ptr, "%d", &value);
-
-	NVT_LOG("%s:value ============%d\n",__func__,value);
-
-    ts->nvt_oppo_proc_data->gesture_test.gesture_backup = ts->gesture_enable;
-	ts->g_gesture_bak = g_gesture;
-    ts->gesture_enable = 1;
-	g_gesture = 1;
-    ts->nvt_oppo_proc_data->gesture_test.flag = !!value;
-	kfree(ptr);
-    return count;
-}
-
-static const struct file_operations black_screen_test_fops = {
-    .owner = THIS_MODULE,
-    .read  = oppo_blackscreen_test_read,
-    .write = oppo_blackscreen_test_write,
-};
-
 /* game_switch_enable */
 static ssize_t oppo_game_switch_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *ppos)
@@ -1791,7 +1643,6 @@ int32_t nvt_extra_proc_init(void)
 		NVT_LOG("oppo proc Init start +++\n");
 
 		NVT_MK_PROC_DIR(touchpanel, NULL)
-		NVT_MK_PROC_ENTRY(baseline_test, 0666, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(coordinate, 0444, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(debug_level, 0644, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(double_tap_enable, 0666, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
@@ -1802,7 +1653,6 @@ int32_t nvt_extra_proc_init(void)
 		NVT_MK_PROC_ENTRY(oppo_tp_direction, 0666, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(tp_fw_update, 0644, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(i2c_device_test, 0644, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
-		NVT_MK_PROC_ENTRY(black_screen_test, 0666, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 		NVT_MK_PROC_ENTRY(game_switch_enable, 0666, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
 
 		NVT_MK_PROC_DIR(debug_info, ts->nvt_oppo_proc_data->touchpanel_dir_entry)
@@ -1816,7 +1666,6 @@ int32_t nvt_extra_proc_init(void)
 		#endif
 
 		NVT_MK_PROC_DIR(touchscreen, NULL)
-		NVT_MK_PROC_ENTRY(ctp_openshort_test, 0666, ts->nvt_oppo_proc_data->touchscreen_dir_entry)
 
 		NVT_LOG("oppo proc Init end ---\n");
 
@@ -1836,12 +1685,6 @@ int32_t nvt_extra_proc_init(void)
         NVT_ERR("create debug_info fail\n");
         return -ENOMEM;
     }
-
-	oppo_baseline_test = proc_create(OPPO_BASELINE_TEST, 0664, oppo_touchpanel_proc, &oppo_nvt_selftest_fops);
-	if (oppo_baseline_test == NULL) {
-        NVT_ERR("create proc/touchpanel/baseline_test Failed!\n");
-		return -ENOMEM;
-	}
 
 	oppo_coordinate= proc_create(OPPO_COORDINATE, 0664, oppo_touchpanel_proc, &oppo_coordinate_fops);
 	if (oppo_coordinate == NULL) {
