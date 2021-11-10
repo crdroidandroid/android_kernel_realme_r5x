@@ -33,6 +33,23 @@
 #include "smb5-lib.h"
 #include "schgm-flash.h"
 
+#undef dev_info
+#define dev_info(x, ...)
+#undef dev_dbg
+#define dev_dbg(x, ...)
+#undef dev_err
+#define dev_err(x, ...)
+#undef pr_info
+#define pr_info(x, ...)
+#undef pr_debug
+#define pr_debug(x, ...)
+#undef pr_error
+#define pr_error(x, ...)
+#undef printk
+#define printk(x, ...)
+#undef printk_deferred
+#define printk_deferred(x, ...)
+
 #ifdef CONFIG_VENDOR_EDIT
 /* Yichun Chen  PSW.BSP.CHG  2018/04/25  OPPO_CHARGE */
 #include <soc/oppo/boot_mode.h>
