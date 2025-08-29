@@ -30,166 +30,6 @@ bool black_suspend_flag = false;
 //Bin.Su@ODM_WT.BSP.TP,2019/06/05,Add sign firmware function begain
 int sign_firmware = 0;
 #endif
-static ssize_t wt_mptest_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
-{
-	int ret = 0;
-	int len = 0;
-	size_t count = 0;
-	char apk_ret[100] = {0};
-	char *ptr = NULL;
-	char result_pass[20] = "result=1";
-	char result_fail[20] = "result=0";
-	ipio_info("Run MP test with LCM on\n");
-
-	if (*pos != 0)
-		return 0;
-	ptr = (char*)kzalloc(256,GFP_KERNEL);
-	if (ptr == NULL) {
-	ipio_err("failed to alloc ptr memory\n");
-		return 0;
-	}
-	if(idev->suspend == true) {
-		ipio_info("%s,not in resume,can not to do mp test\n",__func__);
-		count = ARRAY_SIZE(result_pass);
-		len = snprintf(ptr, count,"%s\n",result_pass);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-		kfree(ptr);
-		return len;
-	}
-	/* Create the directory for mp_test result */
-	ret = dev_mkdir(CSV_LCM_ON_PATH, 0766);
-	if (ret != 0)
-		ipio_err("Failed to create directory for mp_test\n");
-	mp_test_result = true;
-	ilitek_tddi_mp_test_handler(apk_ret, ON);
-	if(mp_test_result) {
-		ipio_debug(DEBUG_MP, "wt mp test pass\n");
-		count = ARRAY_SIZE(result_pass);
-		len = snprintf(ptr, count,"%s\n",result_pass);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	else {
-		ipio_debug(DEBUG_MP, "wt mp test fail\n");
-		count = ARRAY_SIZE(result_fail);
-		len = snprintf(ptr, count,"%s\n",result_fail);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	return len;
-
-}
-static ssize_t oppo_proc_mp_lcm_on_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
-{
-	int ret = 0;
-	int len = 0;
-	size_t count = 0;
-	char apk_ret[100] = {0};
-	char *ptr = NULL;
-	char result_pass[40] = "0 error(s),All test passed";
-	char result_fail[20] = "MP test fail";
-	ipio_info("Run MP test with LCM on\n");
-
-	if (*pos != 0)
-		return 0;
-	ptr = (char*)kzalloc(256,GFP_KERNEL);
-	if (ptr == NULL) {
-		ipio_err("failed to alloc ptr memory\n");
-		return 0;
-	}
-	if(idev->suspend == true) {
-		ipio_info("%s,not in resume,can not to do mp test\n",__func__);
-		count = ARRAY_SIZE(result_pass);
-		len = snprintf(ptr, count,"%s\n",result_pass);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-		kfree(ptr);
-		return len;
-	}
-	/* Create the directory for mp_test result */
-	ret = dev_mkdir(CSV_LCM_ON_PATH, 0766);
-	if (ret != 0)
-		ipio_err("Failed to create directory for mp_test\n");
-	mp_test_result = true;
-	ilitek_tddi_mp_test_handler(apk_ret, ON);
-	if(mp_test_result) {
-		ipio_debug(DEBUG_MP, "oppo lcm on mp test pass\n");
-		count = ARRAY_SIZE(result_pass);
-		len = snprintf(ptr, count,"%s\n",result_pass);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	else {
-		ipio_debug(DEBUG_MP, "oppo lcm on mp test fail\n");
-		count = ARRAY_SIZE(result_fail);
-		len = snprintf(ptr, count,"%s\n",result_fail);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	return len;
-
-}
-static ssize_t oppo_proc_black_screen_test_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
-{
-	int ret = 0;
-	int len = 0;
-	size_t count = 0;
-	char apk_ret[100] = {0};
-	char *ptr = NULL;
-	char result_pass[40] = "0 error(s),All test passed";
-	char result_fail[20] = "MP test fail";
-	ipio_info("Run MP test with LCM off\n");
-
-	if (*pos != 0)
-		return 0;
-	ptr = (char*)kzalloc(256,GFP_KERNEL);
-	if (ptr == NULL) {
-		ipio_err("failed to alloc ptr memory\n");
-		return 0;
-	}
-	if(black_suspend_flag == false) {
-		ipio_info("not in suspend,can not to do black mp test\n");
-		len = snprintf(ptr, 100,"please sleep in\n");
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-		kfree(ptr);
-		return len;
-	}
-	if(idev->gesture== false) {
-		ipio_info("gesture is off,can not to do black mp test\n");
-		len = snprintf(ptr, 100,"please open gesture mode\n");
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-		kfree(ptr);
-		black_suspend_flag = false;
-		return len;
-	}
-	
-	/* Create the directory for mp_test result */
-	ret = dev_mkdir(CSV_LCM_OFF_PATH,0766);
-	if (ret != 0)
-		ipio_err("Failed to create directory for mp_test\n");
-	mp_test_result = true;
-	ilitek_tddi_mp_test_handler(apk_ret, OFF);
-	if(mp_test_result) {
-		ipio_debug(DEBUG_MP, "oppo lcm off mp test pass\n");
-		count = ARRAY_SIZE(result_pass);
-		len = snprintf(ptr, count,"%s\n",result_pass);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	else {
-		ipio_debug(DEBUG_MP, "oppo lcm off mp test fail\n");
-		count = ARRAY_SIZE(result_fail);
-		len = snprintf(ptr, count,"%s\n",result_fail);
-		ret = copy_to_user(buff,ptr,len);
-		*pos += len;
-	}
-	black_suspend_flag = false;
-	return len;
-
-}
 
 static ssize_t oppo_proc_black_screen_test_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
 {
@@ -1095,16 +935,6 @@ static ssize_t oppo_proc_hopping_write(struct file *filp, const char *buff, size
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-struct file_operations wt_open_test_fops = {
-	.read = wt_mptest_read,
-};
-struct file_operations proc_oppo_mp_lcm_on_fops = {
-	.read = oppo_proc_mp_lcm_on_read,
-};
-struct file_operations proc_black_screen_test_fops = {
-	.read  = oppo_proc_black_screen_test_read,
-	.write = oppo_proc_black_screen_test_write,
-};
 struct file_operations proc_game_switch_enable_fops = {
 	.read  = oppo_proc_game_switch_read,
 	.write = oppo_proc_game_switch_write,
@@ -1204,8 +1034,6 @@ int oppo_proc_init(void)
 	struct proc_dir_entry *proc_oppo_edge_limit_enable;
 	struct proc_dir_entry *proc_dir_oppo;
 	struct proc_dir_entry *proc_dir_debug_info;
-	struct proc_dir_entry *proc_baseline_test;
-	struct proc_dir_entry *proc_blackscreen_test;
 	struct proc_dir_entry *proc_coordinate;
 	struct proc_dir_entry *proc_CDC_delta;
 	struct proc_dir_entry *proc_CDC_rawdata;
@@ -1215,7 +1043,6 @@ int oppo_proc_init(void)
 	struct proc_dir_entry *proc_oppo_tp_direction_dir;
 	struct proc_dir_entry *proc_oppo_tpcell_info;
 	struct proc_dir_entry *proc_wt_dir;
-	struct proc_dir_entry *proc_mptest_node;
 	struct proc_dir_entry *proc_oppo_sign_firmware_dir;
 	struct proc_dir_entry *proc_hopping_node;
 	//for WT factory test
@@ -1223,12 +1050,6 @@ int oppo_proc_init(void)
 	if ( proc_wt_dir == NULL )
 	{
 		ipio_err("create proc/touchscreen Failed!\n");
-		res = -1;
-	}
-	proc_mptest_node = proc_create("ctp_openshort_test", 0666, proc_wt_dir, &wt_open_test_fops);
-	if ( proc_mptest_node == NULL )
-	{
-		ipio_err("create proc/touchscreen/ctp_openshort_test Failed!\n");
 		res = -1;
 	}
 	//for oppo
@@ -1242,18 +1063,6 @@ int oppo_proc_init(void)
 	if ( proc_dir_debug_info == NULL )
 	{
 		ipio_err("create proc/touchpanel/debug_info Failed!\n");
-		res = -1;
-	}
-	proc_baseline_test = proc_create("baseline_test", 0666, proc_dir_oppo, &proc_oppo_mp_lcm_on_fops);
-	if ( proc_baseline_test == NULL )
-	{
-		ipio_err("create proc/touchpanel/baseline_test Failed!\n");
-		res = -1;
-	}
-	proc_blackscreen_test =proc_create("black_screen_test", 0666, proc_dir_oppo, &proc_black_screen_test_fops);
-	if ( proc_blackscreen_test == NULL )
-	{
-		ipio_err("create proc/touchpanel/black_screen_test Failed!\n");
 		res = -1;
 	}
 	proc_game_switch_enable =proc_create("game_switch_enable", 0666, proc_dir_oppo, &proc_game_switch_enable_fops);

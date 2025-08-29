@@ -779,54 +779,6 @@ static ssize_t ilitek_proc_get_debug_mode_data_write(struct file *filp, const ch
 	return size;
 }
 
-static ssize_t ilitek_node_mp_lcm_on_test_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
-{
-	int ret = 0;
-	char apk_ret[100] = {0};
-
-	ipio_info("Run MP test with LCM on\n");
-
-	if (*pos != 0)
-		return 0;
-
-	/* Create the directory for mp_test result */
-	ret = dev_mkdir(CSV_LCM_ON_PATH, 0766);
-	if (ret != 0)
-		ipio_err("Failed to create directory for mp_test\n");
-
-	ilitek_tddi_mp_test_handler(apk_ret, ON);
-
-	ret = copy_to_user((char *)buff, apk_ret, sizeof(apk_ret));
-	if (ret < 0)
-		ipio_err("Failed to copy data to user space\n");
-
-	return ret;
-}
-
-static ssize_t ilitek_node_mp_lcm_off_test_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
-{
-	int ret = 0;
-	char apk_ret[100] = {0};
-
-	ipio_info("Run MP test with LCM off\n");
-
-	if (*pos != 0)
-		return 0;
-
-	/* Create the directory for mp_test result */
-	ret = dev_mkdir(CSV_LCM_OFF_PATH, 0766);
-	if (ret != 0)
-		ipio_err("Failed to create directory for mp_test\n");
-
-	ilitek_tddi_mp_test_handler(apk_ret, OFF);
-
-	ret = copy_to_user((char *)buff, apk_ret, sizeof(apk_ret));
-	if (ret < 0)
-		ipio_err("Failed to copy data to user space\n");
-
-	return ret;
-}
-
 static ssize_t ilitek_proc_fw_process_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
 {
 	int ret = 0;
@@ -1365,14 +1317,6 @@ typedef struct {
 	bool isCreated;
 } proc_node_t;
 
-struct file_operations proc_mp_lcm_on_test_fops = {
-	.read = ilitek_node_mp_lcm_on_test_read,
-};
-
-struct file_operations proc_mp_lcm_off_test_fops = {
-	.read = ilitek_node_mp_lcm_off_test_read,
-};
-
 struct file_operations proc_debug_message_fops = {
 	.read = ilitek_proc_debug_message_read,
 };
@@ -1426,8 +1370,6 @@ proc_node_t proc_table[] = {
 	{"fw_process", NULL, &proc_fw_process_fops, false},
 	{"fw_upgrade", NULL, &proc_fw_upgrade_fops, false},
 	{"debug_level", NULL, &proc_debug_level_fops, false},
-	{"mp_lcm_on_test", NULL, &proc_mp_lcm_on_test_fops, false},
-	{"mp_lcm_off_test", NULL, &proc_mp_lcm_off_test_fops, false},
 	{"debug_message", NULL, &proc_debug_message_fops, false},
 	{"debug_message_switch", NULL, &proc_debug_message_switch_fops, false},
 	{"fw_pc_counter", NULL, &proc_fw_pc_counter_fops, false},
@@ -1527,18 +1469,5 @@ void ilitek_tddi_node_init(void)
 	int i = 0, ret = 0;
 
 	proc_dir_ilitek = proc_mkdir("ilitek", NULL);
-
-	for (; i < ARRAY_SIZE(proc_table); i++) {
-		proc_table[i].node = proc_create(proc_table[i].name, 0644, proc_dir_ilitek, proc_table[i].fops);
-
-		if (proc_table[i].node == NULL) {
-			proc_table[i].isCreated = false;
-			ipio_err("Failed to create %s under /proc\n", proc_table[i].name);
-			ret = -ENODEV;
-		} else {
-			proc_table[i].isCreated = true;
-			ipio_info("Succeed to create %s under /proc\n", proc_table[i].name);
-		}
-	}
 	netlink_init();
 }

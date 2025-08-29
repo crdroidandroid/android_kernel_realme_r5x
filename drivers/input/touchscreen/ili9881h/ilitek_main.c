@@ -85,46 +85,6 @@ static void ilitek_resume_work_queue(struct work_struct *work)
 	idev->suspend = false;
 }
 
-
-int ilitek_tddi_mp_test_handler(char *apk, bool lcm_on)
-{
-	int ret = 0;
-	u8 tp_mode = P5_X_FW_TEST_MODE;
-
-	if (atomic_read(&idev->fw_stat)) {
-		ipio_err("fw upgrade processing, ignore\n");
-		return 0;
-	}
-
-	if (!idev->chip->open_c_formula ||
-		!idev->chip->open_sp_formula) {
-		ipio_err("formula is null\n");
-		return -1;
-	}
-
-	ilitek_tddi_wq_ctrl(WQ_ESD, DISABLE);
-	ilitek_tddi_wq_ctrl(WQ_BAT, DISABLE);
-	mutex_lock(&idev->touch_mutex);
-	atomic_set(&idev->mp_stat, ENABLE);
-
-	if (idev->actual_tp_mode != P5_X_FW_TEST_MODE) {
-		if (ilitek_tddi_switch_mode(&tp_mode) < 0)
-			goto out;
-	}
-
-	ret = ilitek_tddi_mp_test_main(apk, lcm_on);
-
-out:
-	tp_mode = P5_X_FW_DEMO_MODE;
-	ilitek_tddi_switch_mode(&tp_mode);
-
-	atomic_set(&idev->mp_stat, DISABLE);
-	mutex_unlock(&idev->touch_mutex);
-	ilitek_tddi_wq_ctrl(WQ_ESD, ENABLE);
-	ilitek_tddi_wq_ctrl(WQ_BAT, ENABLE);
-	return ret;
-}
-
 int ilitek_tddi_switch_mode(u8 *data)
 {
 	int ret = 0, mode;
