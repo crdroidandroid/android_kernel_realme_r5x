@@ -1485,7 +1485,7 @@ CONFIG_FORCE_FAST_CHARGE=y
 #
 # FingerprintCard fingerprint driver
 #
-CONFIG_FPR_FPC=y
+# CONFIG_FPR_FPC is not set
 
 #
 # SCSI device support
@@ -2183,7 +2183,7 @@ CONFIG_INPUT_UINPUT=y
 # CONFIG_INPUT_DRV2667_HAPTICS is not set
 # CONFIG_SMI130 is not set
 # CONFIG_RMI4_CORE is not set
-# CONFIG_OPPO_FINGERPRINT is not set
+CONFIG_OPPO_FINGERPRINT=y
 
 #
 # Hardware I/O ports
